@@ -1,0 +1,361 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "ðŸ”¥ EzHub Universal | All Games ðŸŽ®",
+   LoadingTitle = "EzHub Universal Script",
+   LoadingSubtitle = "by Ali Bumaye",
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = nil,
+      FileName = "EzHub Universal"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvitelink",
+      RememberJoins = true
+   },
+   KeySystem = false,
+   KeySettings = {
+      Title = "Key | EzHub",
+      Subtitle = "Key System",
+      Note = "No Key Required",
+      FileName = "EzHubKey",
+      SaveKey = false,
+      GrabKeyFromSite = false,
+      Key = {""}
+   }
+})
+
+local MainTab = Window:CreateTab("ðŸ  Main", nil)
+local MainSection = MainTab:CreateSection("Movement")
+
+Rayfield:Notify({
+   Title = "EzHub Universal",
+   Content = "Script loaded successfully!",
+   Duration = 5,
+   Image = 13047715178,
+   Actions = {
+      Ignore = {
+         Name = "Okay!",
+         Callback = function()
+         print("EzHub Universal Loaded!")
+      end
+   },
+},
+})
+
+local Player = game.Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+Player.CharacterAdded:Connect(function(char)
+   Character = char
+   Humanoid = char:WaitForChild("Humanoid")
+   RootPart = char:WaitForChild("HumanoidRootPart")
+end)
+
+local Slider = MainTab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 500},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = 16,
+   Flag = "sliderws",
+   Callback = function(Value)
+      if Humanoid then
+         Humanoid.WalkSpeed = Value
+      end
+   end,
+})
+
+local Slider = MainTab:CreateSlider({
+   Name = "JumpPower",
+   Range = {50, 500},
+   Increment = 1,
+   Suffix = "Power",
+   CurrentValue = 50,
+   Flag = "sliderjp",
+   Callback = function(Value)
+      if Humanoid then
+         Humanoid.JumpPower = Value
+      end
+   end,
+})
+
+local InfJumpEnabled = false
+local Toggle = MainTab:CreateToggle({
+   Name = "Infinite Jump",
+   CurrentValue = false,
+   Flag = "infjump",
+   Callback = function(Value)
+      InfJumpEnabled = Value
+   end,
+})
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+   if InfJumpEnabled and Humanoid then
+      Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+   end
+end)
+
+local FlySpeed = 50
+local Flying = false
+local FlyControl = {F = 0, B = 0, L = 0, R = 0}
+local FlyConnection
+local FlyBV
+local FlyBG
+
+local function StartFly()
+   Flying = true
+   local BV = Instance.new("BodyVelocity")
+   BV.Velocity = Vector3.new(0, 0, 0)
+   BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+   BV.Parent = RootPart
+   FlyBV = BV
+
+   local BG = Instance.new("BodyGyro")
+   BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+   BG.CFrame = RootPart.CFrame
+   BG.Parent = RootPart
+   FlyBG = BG
+
+   FlyConnection = game:GetService("RunService").Heartbeat:Connect(function()
+      if not Flying or not RootPart or not RootPart.Parent then return end
+      
+      local Camera = workspace.CurrentCamera
+      local MoveDirection = Vector3.new(
+         FlyControl.R - FlyControl.L,
+         0,
+         FlyControl.F - FlyControl.B
+      )
+      
+      if MoveDirection:Dot(MoveDirection) > 0 then
+         MoveDirection = MoveDirection.Unit
+      end
+      
+      BV.Velocity = ((Camera.CFrame.LookVector * MoveDirection.Z) + 
+                     (Camera.CFrame.RightVector * MoveDirection.X)) * FlySpeed
+      
+      BG.CFrame = Camera.CFrame
+   end)
+end
+
+local function StopFly()
+   Flying = false
+   if FlyConnection then
+      FlyConnection:Disconnect()
+      FlyConnection = nil
+   end
+   if FlyBV then
+      FlyBV:Destroy()
+      FlyBV = nil
+   end
+   if FlyBG then
+      FlyBG:Destroy()
+      FlyBG = nil
+   end
+   FlyControl = {F = 0, B = 0, L = 0, R = 0}
+end
+
+local Toggle = MainTab:CreateToggle({
+   Name = "Fly",
+   CurrentValue = false,
+   Flag = "fly",
+   Callback = function(Value)
+      if Value then
+         StartFly()
+      else
+         StopFly()
+      end
+   end,
+})
+
+local Slider = MainTab:CreateSlider({
+   Name = "Fly Speed",
+   Range = {10, 300},
+   Increment = 5,
+   Suffix = "Speed",
+   CurrentValue = 50,
+   Flag = "flyspeed",
+   Callback = function(Value)
+      FlySpeed = Value
+   end,
+})
+
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+   if gameProcessed or not Flying then return end
+   if input.KeyCode == Enum.KeyCode.W then
+      FlyControl.F = 1
+   elseif input.KeyCode == Enum.KeyCode.S then
+      FlyControl.B = 1
+   elseif input.KeyCode == Enum.KeyCode.A then
+      FlyControl.L = 1
+   elseif input.KeyCode == Enum.KeyCode.D then
+      FlyControl.R = 1
+   end
+end)
+
+game:GetService("UserInputService").InputEnded:Connect(function(input, gameProcessed)
+   if not Flying then return end
+   if input.KeyCode == Enum.KeyCode.W then
+      FlyControl.F = 0
+   elseif input.KeyCode == Enum.KeyCode.S then
+      FlyControl.B = 0
+   elseif input.KeyCode == Enum.KeyCode.A then
+      FlyControl.L = 0
+   elseif input.KeyCode == Enum.KeyCode.D then
+      FlyControl.R = 0
+   end
+end)
+
+local NoclipEnabled = false
+local NoclipConnection
+
+local Toggle = MainTab:CreateToggle({
+   Name = "Noclip",
+   CurrentValue = false,
+   Flag = "noclip",
+   Callback = function(Value)
+      NoclipEnabled = Value
+      if Value then
+         NoclipConnection = game:GetService("RunService").Stepped:Connect(function()
+            if Character then
+               for _, part in pairs(Character:GetDescendants()) do
+                  if part:IsA("BasePart") then
+                     part.CanCollide = false
+                  end
+               end
+            end
+         end)
+      else
+         if NoclipConnection then
+            NoclipConnection:Disconnect()
+            NoclipConnection = nil
+         end
+         if Character then
+            for _, part in pairs(Character:GetDescendants()) do
+               if part:IsA("BasePart") then
+                  part.CanCollide = true
+               end
+            end
+         end
+      end
+   end,
+})
+
+local PlayerSection = MainTab:CreateSection("Player")
+
+local Slider = MainTab:CreateSlider({
+   Name = "Gravity",
+   Range = {0, 196},
+   Increment = 1,
+   Suffix = "Gravity",
+   CurrentValue = 196,
+   Flag = "gravity",
+   Callback = function(Value)
+      workspace.Gravity = Value
+   end,
+})
+
+local Slider = MainTab:CreateSlider({
+   Name = "FOV",
+   Range = {70, 120},
+   Increment = 1,
+   Suffix = "FOV",
+   CurrentValue = 70,
+   Flag = "fov",
+   Callback = function(Value)
+      workspace.CurrentCamera.FieldOfView = Value
+   end,
+})
+
+local Toggle = MainTab:CreateToggle({
+   Name = "Fullbright",
+   CurrentValue = false,
+   Flag = "fullbright",
+   Callback = function(Value)
+      if Value then
+         game:GetService("Lighting").Brightness = 2
+         game:GetService("Lighting").ClockTime = 14
+         game:GetService("Lighting").FogEnd = 100000
+         game:GetService("Lighting").GlobalShadows = false
+         game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+      else
+         game:GetService("Lighting").Brightness = 1
+         game:GetService("Lighting").ClockTime = 12
+         game:GetService("Lighting").FogEnd = 100000
+         game:GetService("Lighting").GlobalShadows = true
+         game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+      end
+   end,
+})
+
+local MiscTab = Window:CreateTab("ðŸŽ² Misc", nil)
+local MiscSection = MiscTab:CreateSection("Utilities")
+
+local Button = MiscTab:CreateButton({
+   Name = "Reset Character",
+   Callback = function()
+      if Character and Humanoid then
+         Humanoid.Health = 0
+      end
+   end,
+})
+
+local Button = MiscTab:CreateButton({
+   Name = "Rejoin Server",
+   Callback = function()
+      game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
+   end,
+})
+
+local Button = MiscTab:CreateButton({
+   Name = "Server Hop",
+   Callback = function()
+      local servers = {}
+      local req = game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
+      local body = game:GetService("HttpService"):JSONDecode(req)
+      
+      if body and body.data then
+         for i, v in next, body.data do
+            if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers) and v.playing < v.maxPlayers and v.id ~= game.JobId then
+               table.insert(servers, v.id)
+            end
+         end
+      end
+      
+      if #servers > 0 then
+         game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, servers[math.random(1, #servers)], Player)
+      end
+   end,
+})
+
+local Toggle = MiscTab:CreateToggle({
+   Name = "Anti AFK",
+   CurrentValue = false,
+   Flag = "antiafk",
+   Callback = function(Value)
+      if Value then
+         local VirtualUser = game:GetService("VirtualUser")
+         game:GetService("Players").LocalPlayer.Idled:Connect(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+         end)
+      end
+   end,
+})
+
+local InfoTab = Window:CreateTab("â„¹ï¸ Info", nil)
+local InfoSection = InfoTab:CreateSection("Script Info")
+
+local Label = InfoTab:CreateLabel("EzHub Universal Script")
+local Label = InfoTab:CreateLabel("Version: 1.0")
+local Label = InfoTab:CreateLabel("Made by: Ali Bumaye")
+local Label = InfoTab:CreateLabel("Works on all games!")
+
+local ServerSection = InfoTab:CreateSection("Server Info")
+
+local Label = InfoTab:CreateLabel("Players: " .. #game.Players:GetPlayers() .. "/" .. game.Players.MaxPlayers)
+local Label = InfoTab:CreateLabel("Game: " .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name)
+local Label = InfoTab:CreateLabel("Job ID: " .. game.JobId)
